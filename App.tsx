@@ -1,12 +1,12 @@
 
 import { StatusBar } from 'expo-status-bar';
-import React, { useEffect, useMemo, useState } from 'react';
-import { SafeAreaView, StyleSheet } from 'react-native';
-import { calculateWinner, getEmptyIndices, applyMove, pickMoveByDifficulty, Player, Cell, Positions, Difficulty } from './core/gameLogic';
-import StartScreen from './screens/StartScreen';
-import GameScreen from './screens/GameScreen';
+import { StyleSheet, SafeAreaView } from 'react-native';
+import React, { useMemo, useState, useEffect } from 'react';
+import { calculateWinner, Player, Cell, Positions, Difficulty, pickMoveByDifficulty } from './core/gameLogic';
+import { SupportedLanguage } from './core/i18n';
+import AppNavigator from './navigation/AppNavigator';
 
-type Screen = 'START' | 'GAME';
+type Screen = 'START' | 'GAME' | 'SETTINGS';
 
 export default function App() {
   const [themeMode, setThemeMode] = useState<'light' | 'dark'>('dark');
@@ -16,8 +16,8 @@ export default function App() {
   const [positions, setPositions] = useState<Positions>({ X: [], O: [] });
   const [mode, setMode] = useState<'PVP' | 'CPU'>('PVP');
   const [difficulty, setDifficulty] = useState<Difficulty>('MEDIUM');
-  const [screen, setScreen] = useState<Screen>('START');
   const ai: Player = 'O';
+  const [lang, setLang] = useState<SupportedLanguage>('pt');
 
   const result = useMemo(() => calculateWinner(board), [board]);
   const isDraw = useMemo(
@@ -27,63 +27,56 @@ export default function App() {
 
   function handlePress(index: number) {
     if (board[index] || result) return;
-    if (mode === 'CPU' && current === ai) return; // bloqueia toques durante turno da máquina
-
-    // Remover a marcação mais antiga do jogador atual se já houver 3
+    if (mode === 'CPU' && current === ai) return;
     const currList = positions[current];
     const willRemove = currList.length >= 3 ? currList[0] : undefined;
-
     setBoard((prev: Cell[]) => {
       const next = [...prev];
       if (willRemove !== undefined) next[willRemove] = null;
       next[index] = current;
       return next;
     });
-
     setPositions((prev: Positions) => {
       const list = prev[current as Player];
       const updated = (list.length >= 3 ? list.slice(1) : list).concat(index);
       return { ...prev, [current as Player]: updated };
     });
-
     setCurrent((prev: Player) => (prev === 'X' ? 'O' : 'X'));
   }
 
+  // Efeito para a jogada automática da máquina
+  useEffect(() => {
+    if (mode === 'CPU' && current === ai && !result && !isDraw) {
+      // Pequeno delay para parecer "humano"
+      const timeout = setTimeout(() => {
+        const idx = pickMoveByDifficulty(board, positions, ai, difficulty);
+        if (typeof idx === 'number') {
+          // Repete a lógica do handlePress, mas para o AI
+          const currList = positions[ai];
+          const willRemove = currList.length >= 3 ? currList[0] : undefined;
+          setBoard(prev => {
+            const next = [...prev];
+            if (willRemove !== undefined) next[willRemove] = null;
+            next[idx] = ai;
+            return next;
+          });
+          setPositions(prev => {
+            const list = prev[ai];
+            const updated = (list.length >= 3 ? list.slice(1) : list).concat(idx);
+            return { ...prev, [ai]: updated };
+          });
+          setCurrent(prev => (prev === 'X' ? 'O' : 'X'));
+        }
+      }, 400);
+      return () => clearTimeout(timeout);
+    }
+  }, [mode, current, ai, result, isDraw, board, positions, difficulty]);
+
   function reset() {
     setBoard(Array(9).fill(null));
-    setCurrent('X');
     setPositions({ X: [], O: [] });
-  }
-
-  // Turno da máquina
-  useEffect(() => {
-    if (screen !== 'GAME') return;
-    if (mode !== 'CPU') return;
-    if (result) return;
-    if (current !== ai) return;
-
-    const move = pickMoveByDifficulty(board, positions, ai, difficulty);
-    if (move == null) return;
-
-    // aplica a jogada da IA com a mesma regra de 3 peças
-    const currList = positions[ai];
-    const willRemove = currList.length >= 3 ? currList[0] : undefined;
-
-    setBoard((prev: Cell[]) => {
-      const next = [...prev];
-      if (willRemove !== undefined) next[willRemove] = null;
-      next[move] = ai;
-      return next;
-    });
-
-    setPositions((prev: Positions) => {
-      const list = prev[ai];
-      const updated = (list.length >= 3 ? list.slice(1) : list).concat(move);
-      return { ...prev, [ai]: updated };
-    });
-
     setCurrent('X');
-  }, [screen, mode, current, ai, board, positions, result, difficulty]);
+  }
 
   const statusText = result
     ? `Vitória de ${result.winner}!`
@@ -91,7 +84,6 @@ export default function App() {
     ? 'Empate!'
     : `Vez de ${current}`;
 
-  // Definição de temas
   const theme = isDark
     ? {
         background: '#0f172a',
@@ -120,37 +112,34 @@ export default function App() {
         cellWin: '#bbf7d0',
       };
 
-  // Telas
+  // Usa o AppNavigator para navegação stack
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }}>
       <StatusBar style={isDark ? 'light' : 'dark'} />
-      {screen === 'START' ? (
         <StartScreen
-          theme={theme}
-          mode={mode}
-          setMode={setMode}
-          difficulty={difficulty}
-          setDifficulty={setDifficulty}
-          onStart={() => { reset(); setScreen('GAME'); }}
-          themeMode={themeMode}
-          setThemeMode={setThemeMode}
-        />
-      ) : (
-        <GameScreen
-          theme={theme}
-          board={board}
-          current={current}
-          result={result}
-          isDraw={isDraw}
-          handlePress={handlePress}
-          reset={reset}
-          mode={mode}
-          difficulty={difficulty}
-          ai={ai}
-          setScreen={setScreen}
-          statusText={statusText}
-        />
-      )}
+      <AppNavigator
+        theme={theme}
+        themeMode={themeMode}
+        setThemeMode={setThemeMode}
+        board={board}
+        setBoard={setBoard}
+        current={current}
+        setCurrent={setCurrent}
+        positions={positions}
+        setPositions={setPositions}
+        mode={mode}
+        setMode={setMode}
+        difficulty={difficulty}
+        setDifficulty={setDifficulty}
+        ai={ai}
+        lang={lang}
+        setLang={setLang}
+        result={result}
+        isDraw={isDraw}
+        handlePress={handlePress}
+        reset={reset}
+        statusText={statusText}
+      />
     </SafeAreaView>
   );
 }
