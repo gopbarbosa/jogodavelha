@@ -17,6 +17,7 @@ interface GameScreenProps {
   statusText: string;
   lang: SupportedLanguage;
   navigation: any;
+  showInterstitialIfNeeded?: () => void;
 }
 
   const GameScreen: React.FC<GameScreenProps> = ({
@@ -33,6 +34,7 @@ interface GameScreenProps {
     statusText,
     lang,
     navigation,
+    showInterstitialIfNeeded,
   }) => {
     return (
       <View style={[{ flex: 1, backgroundColor: theme.container, paddingHorizontal: 16, paddingBottom: 16 }] }>
@@ -79,7 +81,16 @@ interface GameScreenProps {
           ))}
         </View>
 
-        <Pressable accessibilityRole="button" onPress={reset} style={[{ marginTop: 24, backgroundColor: theme.badge, borderColor: theme.border, paddingVertical: 12, paddingHorizontal: 20, borderRadius: 999, borderWidth: 1, alignSelf: 'center' }] }>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => {
+            if ((result || isDraw) && typeof showInterstitialIfNeeded === 'function') {
+              showInterstitialIfNeeded();
+            }
+            reset();
+          }}
+          style={[{ marginTop: 24, backgroundColor: theme.badge, borderColor: theme.border, paddingVertical: 12, paddingHorizontal: 20, borderRadius: 999, borderWidth: 1, alignSelf: 'center' }] }
+        >
           <Text style={[{ color: theme.text, fontSize: 16, fontWeight: '600' }]}>{result || isDraw ? t('playAgain', lang) : t('restart', lang)}</Text>
         </Pressable>
 

@@ -2,9 +2,11 @@ import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, SafeAreaView } from 'react-native';
 import React, { useMemo, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { RewardedInterstitialAd, RewardedAdEventType } from 'react-native-google-mobile-ads';
 import { calculateWinner, Player, Cell, Positions, Difficulty, pickMoveByDifficulty } from './core/gameLogic';
 import { SupportedLanguage } from './core/i18n';
 import AppNavigator from './navigation/AppNavigator';
+import { AdsUnitIds } from './core/adsUnitIds';
 
 type Screen = 'START' | 'GAME' | 'SETTINGS';
 
@@ -18,6 +20,7 @@ export default function App() {
   const [mode, setMode] = useState<'PVP' | 'CPU'>('PVP');
   const [difficulty, setDifficulty] = useState<Difficulty>('MEDIUM');
   const ai: Player = 'O';
+  const [gamesPlayed, setGamesPlayed] = useState(0);
 
   const result = useMemo(() => calculateWinner(board), [board]);
   const isDraw = useMemo(
@@ -76,6 +79,27 @@ export default function App() {
     setBoard(Array(9).fill(null));
     setPositions({ X: [], O: [] });
     setCurrent('X');
+  }
+
+  // Função para mostrar rewarded interstitial
+  function showInterstitialIfNeeded() {
+    const nextCount = gamesPlayed + 1;
+    setGamesPlayed(nextCount);
+    if (nextCount % 5 === 0) {
+      const unitId = AdsUnitIds.rewardedInterstitialAd || '';
+      const rewardedInterstitial = RewardedInterstitialAd.createForAdRequest(unitId, {
+        requestNonPersonalizedAdsOnly: false,
+      });
+      const unsubscribe = rewardedInterstitial.addAdEventListener(RewardedAdEventType.LOADED, () => {
+        rewardedInterstitial.show();
+      });
+      // Remove listener ao fechar
+      const unsubClosed = rewardedInterstitial.addAdEventListener(RewardedAdEventType.EARNED_REWARD, () => {
+        unsubscribe();
+        unsubClosed();
+      });
+      rewardedInterstitial.load();
+    }
   }
 
   const statusText = result
@@ -162,6 +186,7 @@ export default function App() {
         handlePress={handlePress}
         reset={reset}
         statusText={statusText}
+        showInterstitialIfNeeded={showInterstitialIfNeeded}
       />
     </SafeAreaView>
   );
