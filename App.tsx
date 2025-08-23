@@ -1,7 +1,7 @@
-
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, SafeAreaView } from 'react-native';
 import React, { useMemo, useState, useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { calculateWinner, Player, Cell, Positions, Difficulty, pickMoveByDifficulty } from './core/gameLogic';
 import { SupportedLanguage } from './core/i18n';
 import AppNavigator from './navigation/AppNavigator';
@@ -9,7 +9,8 @@ import AppNavigator from './navigation/AppNavigator';
 type Screen = 'START' | 'GAME' | 'SETTINGS';
 
 export default function App() {
-  const [themeMode, setThemeMode] = useState<'light' | 'dark'>('dark');
+  const [themeMode, setThemeModeState] = useState<'light' | 'dark'>('dark');
+  const [lang, setLangState] = useState<SupportedLanguage>('pt');
   const isDark = themeMode === 'dark';
   const [board, setBoard] = useState<Cell[]>(Array(9).fill(null));
   const [current, setCurrent] = useState<Player>('X');
@@ -17,7 +18,6 @@ export default function App() {
   const [mode, setMode] = useState<'PVP' | 'CPU'>('PVP');
   const [difficulty, setDifficulty] = useState<Difficulty>('MEDIUM');
   const ai: Player = 'O';
-  const [lang, setLang] = useState<SupportedLanguage>('pt');
 
   const result = useMemo(() => calculateWinner(board), [board]);
   const isDraw = useMemo(
@@ -111,6 +111,30 @@ export default function App() {
         badge: '#e0e7ef',
         cellWin: '#bbf7d0',
       };
+
+  // Carregar tema e idioma salvos
+  useEffect(() => {
+    (async () => {
+      try {
+        const savedTheme = await AsyncStorage.getItem('themeMode');
+        if (savedTheme === 'light' || savedTheme === 'dark') setThemeModeState(savedTheme);
+        const savedLang = await AsyncStorage.getItem('lang');
+        if (savedLang === 'pt' || savedLang === 'en' || savedLang === 'es') setLangState(savedLang as SupportedLanguage);
+      } catch {}
+    })();
+  }, []);
+
+  // Persistir tema
+  const setThemeMode = (mode: 'light' | 'dark') => {
+    setThemeModeState(mode);
+    AsyncStorage.setItem('themeMode', mode);
+  };
+
+  // Persistir idioma
+  const setLang = (l: SupportedLanguage) => {
+    setLangState(l);
+    AsyncStorage.setItem('lang', l);
+  };
 
   // Usa o AppNavigator para navegação stack
   return (
