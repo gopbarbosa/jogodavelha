@@ -116,7 +116,6 @@ export default function App() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }}>
       <StatusBar style={isDark ? 'light' : 'dark'} />
-        <StartScreen
       <AppNavigator
         theme={theme}
         themeMode={themeMode}
