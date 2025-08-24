@@ -23,7 +23,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
   setLang,
   navigation,
 }) => {
-  const { mode, setMode, difficulty, setDifficulty } = useGame();
+  const { mode, setMode, difficulty, setDifficulty, infiniteMode, setInfiniteMode } = useGame();
   return (
   <View style={{ flex: 1, justifyContent: 'flex-start', paddingTop: 64, paddingHorizontal: 20, paddingBottom: 64, backgroundColor: theme.container }}>
         {/* Top bar: idioma + config */}
@@ -78,16 +78,32 @@ const StartScreen: React.FC<StartScreenProps> = ({
           </View>
         )}
 
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => { navigation.navigate('Game'); }}
-          style={({ pressed }) => [
-            { marginTop: 32, backgroundColor: theme.badge, borderColor: theme.border, paddingVertical: 16, paddingHorizontal: 32, borderRadius: 999, borderWidth: 1, alignSelf: 'center', shadowColor: '#000', shadowOpacity: 0.10, shadowRadius: 8, elevation: 2 },
-            pressed && { opacity: 0.7 }
-          ]}
-        >
-          <Text style={[{ color: theme.text, fontSize: 18, fontWeight: '700', letterSpacing: 1 }]}>{t('start', lang)}</Text>
-        </Pressable>
+        <View style={{ marginTop: 24, alignItems: 'center' }}>
+          <Pressable
+            onPress={() => setInfiniteMode(!infiniteMode)}
+            style={({ pressed }) => [
+              { flexDirection: 'row', alignItems: 'center', marginBottom: 16, paddingVertical: 8, paddingHorizontal: 18, borderRadius: 999, backgroundColor: theme.card, borderWidth: 1, borderColor: infiniteMode ? theme.borderActive : theme.border },
+              pressed && { opacity: 0.7 }
+            ]}
+            accessibilityRole="button"
+            accessibilityState={{ checked: infiniteMode }}
+          >
+            <View style={{ width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: infiniteMode ? theme.borderActive : theme.border, backgroundColor: infiniteMode ? theme.cardActive : theme.card, marginRight: 10, alignItems: 'center', justifyContent: 'center' }}>
+              {infiniteMode && <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: theme.borderActive }} />}
+            </View>
+            <Text style={{ color: theme.text, fontSize: 15, fontWeight: '600' }}>{t('infiniteMode', lang)}</Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => { navigation.navigate('Game'); }}
+            style={({ pressed }) => [
+              { marginTop: 8, backgroundColor: theme.badge, borderColor: theme.border, paddingVertical: 16, paddingHorizontal: 32, borderRadius: 999, borderWidth: 1, alignSelf: 'center', shadowColor: '#000', shadowOpacity: 0.10, shadowRadius: 8, elevation: 2 },
+              pressed && { opacity: 0.7 }
+            ]}
+          >
+            <Text style={[{ color: theme.text, fontSize: 18, fontWeight: '700', letterSpacing: 1 }]}>{t('start', lang)}</Text>
+          </Pressable>
+        </View>
 
         <View style={{ marginTop: 24 }}>
           <Text style={{ color: theme.textMuted, fontSize: 13, textAlign: 'center' }}>{t('rule', lang)}</Text>

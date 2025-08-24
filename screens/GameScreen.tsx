@@ -19,7 +19,7 @@ interface GameScreenProps {
     navigation,
   }) => {
   // Usa contexto global para modo, dificuldade e ai
-  const { mode, difficulty, ai } = useGame();
+  const { mode, difficulty, ai, infiniteMode } = useGame();
     // Estado do jogo
     const [board, setBoard] = useState<Cell[]>(Array(9).fill(null));
     const [current, setCurrent] = useState<Player>('X');
@@ -33,7 +33,7 @@ interface GameScreenProps {
       if (board[index] || result) return;
       if (mode === 'CPU' && current === ai) return;
       const currList = positions[current];
-      const willRemove = currList.length >= 3 ? currList[0] : undefined;
+      const willRemove = !infiniteMode && currList.length >= 3 ? currList[0] : undefined;
       setBoard((prev: Cell[]) => {
         const next = [...prev];
         if (willRemove !== undefined) next[willRemove] = null;
@@ -42,7 +42,7 @@ interface GameScreenProps {
       });
       setPositions((prev: Positions) => {
         const list = prev[current as Player];
-        const updated = (list.length >= 3 ? list.slice(1) : list).concat(index);
+        const updated = (!infiniteMode && list.length >= 3 ? list.slice(1) : list).concat(index);
         return { ...prev, [current as Player]: updated };
       });
       setCurrent((prev: Player) => (prev === 'X' ? 'O' : 'X'));
@@ -55,7 +55,7 @@ interface GameScreenProps {
           const idx = pickMoveByDifficulty(board, positions, ai, difficulty);
           if (typeof idx === 'number') {
             const currList = positions[ai];
-            const willRemove = currList.length >= 3 ? currList[0] : undefined;
+            const willRemove = !infiniteMode && currList.length >= 3 ? currList[0] : undefined;
             setBoard(prev => {
               const next = [...prev];
               if (willRemove !== undefined) next[willRemove] = null;
@@ -64,7 +64,7 @@ interface GameScreenProps {
             });
             setPositions(prev => {
               const list = prev[ai];
-              const updated = (list.length >= 3 ? list.slice(1) : list).concat(idx);
+              const updated = (!infiniteMode && list.length >= 3 ? list.slice(1) : list).concat(idx);
               return { ...prev, [ai]: updated };
             });
             setCurrent(prev => (prev === 'X' ? 'O' : 'X'));

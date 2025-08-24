@@ -7,6 +7,8 @@ interface GameContextProps {
   difficulty: Difficulty;
   setDifficulty: (d: Difficulty) => void;
   ai: Player;
+  infiniteMode: boolean;
+  setInfiniteMode: (v: boolean) => void;
 }
 
 const GameContext = createContext<GameContextProps | undefined>(undefined);
@@ -14,10 +16,11 @@ const GameContext = createContext<GameContextProps | undefined>(undefined);
 export const GameProvider = ({ children }: { children: ReactNode }) => {
   const [mode, setMode] = useState<'PVP' | 'CPU'>('PVP');
   const [difficulty, setDifficulty] = useState<Difficulty>('MEDIUM');
+  const [infiniteMode, setInfiniteMode] = useState<boolean>(false);
   const ai: Player = 'O';
 
   return (
-    <GameContext.Provider value={{ mode, setMode, difficulty, setDifficulty, ai }}>
+    <GameContext.Provider value={{ mode, setMode, difficulty, setDifficulty, ai, infiniteMode, setInfiniteMode }}>
       {children}
     </GameContext.Provider>
   );
