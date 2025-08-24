@@ -91,6 +91,15 @@ const StartScreen: React.FC<StartScreenProps> = ({
 
         <View style={{ marginTop: 24 }}>
           <Text style={{ color: theme.textMuted, fontSize: 13, textAlign: 'center' }}>{t('rule', lang)}</Text>
+          <Pressable
+            onPress={() => navigation.navigate('HowToPlay')}
+            style={({ pressed }) => [
+              { marginTop: 16, alignSelf: 'center', paddingVertical: 10, paddingHorizontal: 24, borderRadius: 999, backgroundColor: theme.card, borderWidth: 1, borderColor: theme.border },
+              pressed && { opacity: 0.7 }
+            ]}
+          >
+            <Text style={{ color: theme.text, fontWeight: '700', fontSize: 16 }}>{t('howToPlay', lang)}</Text>
+          </Pressable>
         </View>
         {/* Banner AdMob fixo na parte inferior usando react-native-google-mobile-ads */}
         <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0 }}>

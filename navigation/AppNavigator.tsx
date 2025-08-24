@@ -4,11 +4,13 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import StartScreen from '../screens/StartScreen';
 import GameScreen from '../screens/GameScreen';
 import SettingsScreen from '../screens/SettingsScreen';
+import HowToPlayScreen from '../screens/HowToPlayScreen';
 
 export type RootStackParamList = {
   Start: undefined;
   Game: undefined;
   Settings: undefined;
+  HowToPlay: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -26,6 +28,9 @@ const AppNavigator = (props: any) => {
         </Stack.Screen>
         <Stack.Screen name="Settings">
           {screenProps => <SettingsScreen {...props} {...screenProps} />}
+        </Stack.Screen>
+        <Stack.Screen name="HowToPlay">
+          {screenProps => <HowToPlayScreen {...props} {...screenProps} />}
         </Stack.Screen>
       </Stack.Navigator>
     </NavigationContainer>
