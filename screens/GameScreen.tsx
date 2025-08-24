@@ -1,41 +1,110 @@
-import React from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { View, Text, Pressable } from 'react-native';
-import { Difficulty, Player, Cell } from '../core/gameLogic';
+import { Difficulty, Player, Cell, Positions, calculateWinner, pickMoveByDifficulty } from '../core/gameLogic';
+import { useGame } from '../core/GameContext';
+import { RewardedInterstitialAd, RewardedAdEventType, AdEventType } from 'react-native-google-mobile-ads';
+import { AdsUnitIds } from '../core/adsUnitIds';
 import { t, SupportedLanguage } from '../core/i18n';
+
 
 interface GameScreenProps {
   theme: any;
-  board: Cell[];
-  current: Player;
-  result: any;
-  isDraw: boolean;
-  handlePress: (idx: number) => void;
-  reset: () => void;
-  mode: 'PVP' | 'CPU';
-  difficulty: Difficulty;
-  ai: Player;
-  statusText: string;
   lang: SupportedLanguage;
   navigation: any;
-  showInterstitialIfNeeded?: () => void;
 }
 
   const GameScreen: React.FC<GameScreenProps> = ({
     theme,
-    board,
-    current,
-    result,
-    isDraw,
-    handlePress,
-    reset,
-    mode,
-    difficulty,
-    ai,
-    statusText,
     lang,
     navigation,
-    showInterstitialIfNeeded,
   }) => {
+  // Usa contexto global para modo, dificuldade e ai
+  const { mode, difficulty, ai } = useGame();
+    // Estado do jogo
+    const [board, setBoard] = useState<Cell[]>(Array(9).fill(null));
+    const [current, setCurrent] = useState<Player>('X');
+    const [positions, setPositions] = useState<Positions>({ X: [], O: [] });
+    const [gamesPlayed, setGamesPlayed] = useState(0);
+
+    const result = useMemo(() => calculateWinner(board), [board]);
+    const isDraw = useMemo(() => board.every(Boolean) && !result, [board, result]);
+
+    function handlePress(index: number) {
+      if (board[index] || result) return;
+      if (mode === 'CPU' && current === ai) return;
+      const currList = positions[current];
+      const willRemove = currList.length >= 3 ? currList[0] : undefined;
+      setBoard((prev: Cell[]) => {
+        const next = [...prev];
+        if (willRemove !== undefined) next[willRemove] = null;
+        next[index] = current;
+        return next;
+      });
+      setPositions((prev: Positions) => {
+        const list = prev[current as Player];
+        const updated = (list.length >= 3 ? list.slice(1) : list).concat(index);
+        return { ...prev, [current as Player]: updated };
+      });
+      setCurrent((prev: Player) => (prev === 'X' ? 'O' : 'X'));
+    }
+
+    // Jogada automática da máquina
+    useEffect(() => {
+      if (mode === 'CPU' && current === ai && !result && !isDraw) {
+        const timeout = setTimeout(() => {
+          const idx = pickMoveByDifficulty(board, positions, ai, difficulty);
+          if (typeof idx === 'number') {
+            const currList = positions[ai];
+            const willRemove = currList.length >= 3 ? currList[0] : undefined;
+            setBoard(prev => {
+              const next = [...prev];
+              if (willRemove !== undefined) next[willRemove] = null;
+              next[idx] = ai;
+              return next;
+            });
+            setPositions(prev => {
+              const list = prev[ai];
+              const updated = (list.length >= 3 ? list.slice(1) : list).concat(idx);
+              return { ...prev, [ai]: updated };
+            });
+            setCurrent(prev => (prev === 'X' ? 'O' : 'X'));
+          }
+        }, 400);
+        return () => clearTimeout(timeout);
+      }
+    }, [mode, current, ai, result, isDraw, board, positions, difficulty]);
+
+    // Função para mostrar rewarded interstitial
+    function showRewardedInterstitialIfNeeded() {
+      const nextCount = gamesPlayed + 1;
+      setGamesPlayed(nextCount);
+      if (nextCount % 5 === 0) {
+        const unitId = AdsUnitIds.rewardedInterstitialAd || '';
+        const rewardedInterstitial = RewardedInterstitialAd.createForAdRequest(unitId, {
+          requestNonPersonalizedAdsOnly: false,
+        });
+        const unsubscribe = rewardedInterstitial.addAdEventListener(RewardedAdEventType.LOADED, () => {
+          rewardedInterstitial.show();
+        });
+        const unsubClosed = rewardedInterstitial.addAdEventListener(AdEventType.CLOSED, () => {
+          unsubscribe();
+          unsubClosed();
+        });
+        rewardedInterstitial.load();
+      }
+    }
+
+    function reset() {
+      setBoard(Array(9).fill(null));
+      setPositions({ X: [], O: [] });
+      setCurrent('X');
+    }
+
+    const statusText = result
+      ? `Vitória de ${result.winner}!`
+      : isDraw
+      ? 'Empate!'
+      : `Vez de ${current}`;
     return (
       <View style={[{ flex: 1, backgroundColor: theme.container, paddingHorizontal: 16, paddingBottom: 16 }] }>
         <View style={{ position: 'absolute', top: 12, left: 12, right: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -84,8 +153,8 @@ interface GameScreenProps {
         <Pressable
           accessibilityRole="button"
           onPress={() => {
-            if ((result || isDraw) && typeof showInterstitialIfNeeded === 'function') {
-              showInterstitialIfNeeded();
+            if (result || isDraw) {
+              showRewardedInterstitialIfNeeded();
             }
             reset();
           }}

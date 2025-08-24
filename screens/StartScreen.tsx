@@ -2,15 +2,12 @@ import React from 'react';
 import { BannerAd, BannerAdSize } from 'react-native-google-mobile-ads';
 import { View, Text, Pressable, Platform } from 'react-native';
 import { Difficulty } from '../core/gameLogic';
+import { useGame } from '../core/GameContext';
 import { t, SupportedLanguage } from '../core/i18n';
 import { AdsUnitIds } from '../core/adsUnitIds';
 
 interface StartScreenProps {
   theme: any;
-  mode: 'PVP' | 'CPU';
-  setMode: (m: 'PVP' | 'CPU') => void;
-  difficulty: Difficulty;
-  setDifficulty: (d: Difficulty) => void;
   themeMode: 'light' | 'dark';
   setThemeMode: (t: 'light' | 'dark') => void;
   lang: SupportedLanguage;
@@ -20,17 +17,14 @@ interface StartScreenProps {
 
 const StartScreen: React.FC<StartScreenProps> = ({
   theme,
-  mode,
-  setMode,
-  difficulty,
-  setDifficulty,
   themeMode,
   setThemeMode,
   lang,
   setLang,
   navigation,
 }) => {
-    return (
+  const { mode, setMode, difficulty, setDifficulty } = useGame();
+  return (
   <View style={{ flex: 1, justifyContent: 'flex-start', paddingTop: 64, paddingHorizontal: 20, paddingBottom: 64, backgroundColor: theme.container }}>
         {/* Top bar: idioma + config */}
   <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 16 }}>

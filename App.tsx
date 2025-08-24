@@ -2,111 +2,19 @@ import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, SafeAreaView } from 'react-native';
 import React, { useMemo, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { RewardedInterstitialAd, RewardedAdEventType } from 'react-native-google-mobile-ads';
-import { calculateWinner, Player, Cell, Positions, Difficulty, pickMoveByDifficulty } from './core/gameLogic';
+// importações removidas: lógica de jogo e anúncios agora nas telas
 import { SupportedLanguage } from './core/i18n';
 import AppNavigator from './navigation/AppNavigator';
+import { GameProvider } from './core/GameContext';
 import { AdsUnitIds } from './core/adsUnitIds';
 
-type Screen = 'START' | 'GAME' | 'SETTINGS';
+
 
 export default function App() {
   const [themeMode, setThemeModeState] = useState<'light' | 'dark'>('dark');
   const [lang, setLangState] = useState<SupportedLanguage>('pt');
   const isDark = themeMode === 'dark';
-  const [board, setBoard] = useState<Cell[]>(Array(9).fill(null));
-  const [current, setCurrent] = useState<Player>('X');
-  const [positions, setPositions] = useState<Positions>({ X: [], O: [] });
-  const [mode, setMode] = useState<'PVP' | 'CPU'>('PVP');
-  const [difficulty, setDifficulty] = useState<Difficulty>('MEDIUM');
-  const ai: Player = 'O';
-  const [gamesPlayed, setGamesPlayed] = useState(0);
 
-  const result = useMemo(() => calculateWinner(board), [board]);
-  const isDraw = useMemo(
-    () => board.every(Boolean) && !result,
-    [board, result]
-  );
-
-  function handlePress(index: number) {
-    if (board[index] || result) return;
-    if (mode === 'CPU' && current === ai) return;
-    const currList = positions[current];
-    const willRemove = currList.length >= 3 ? currList[0] : undefined;
-    setBoard((prev: Cell[]) => {
-      const next = [...prev];
-      if (willRemove !== undefined) next[willRemove] = null;
-      next[index] = current;
-      return next;
-    });
-    setPositions((prev: Positions) => {
-      const list = prev[current as Player];
-      const updated = (list.length >= 3 ? list.slice(1) : list).concat(index);
-      return { ...prev, [current as Player]: updated };
-    });
-    setCurrent((prev: Player) => (prev === 'X' ? 'O' : 'X'));
-  }
-
-  // Efeito para a jogada automática da máquina
-  useEffect(() => {
-    if (mode === 'CPU' && current === ai && !result && !isDraw) {
-      // Pequeno delay para parecer "humano"
-      const timeout = setTimeout(() => {
-        const idx = pickMoveByDifficulty(board, positions, ai, difficulty);
-        if (typeof idx === 'number') {
-          // Repete a lógica do handlePress, mas para o AI
-          const currList = positions[ai];
-          const willRemove = currList.length >= 3 ? currList[0] : undefined;
-          setBoard(prev => {
-            const next = [...prev];
-            if (willRemove !== undefined) next[willRemove] = null;
-            next[idx] = ai;
-            return next;
-          });
-          setPositions(prev => {
-            const list = prev[ai];
-            const updated = (list.length >= 3 ? list.slice(1) : list).concat(idx);
-            return { ...prev, [ai]: updated };
-          });
-          setCurrent(prev => (prev === 'X' ? 'O' : 'X'));
-        }
-      }, 400);
-      return () => clearTimeout(timeout);
-    }
-  }, [mode, current, ai, result, isDraw, board, positions, difficulty]);
-
-  function reset() {
-    setBoard(Array(9).fill(null));
-    setPositions({ X: [], O: [] });
-    setCurrent('X');
-  }
-
-  // Função para mostrar rewarded interstitial
-  function showInterstitialIfNeeded() {
-    const nextCount = gamesPlayed + 1;
-    setGamesPlayed(nextCount);
-    if (nextCount % 5 === 0) {
-      const unitId = AdsUnitIds.rewardedInterstitialAd || '';
-      const rewardedInterstitial = RewardedInterstitialAd.createForAdRequest(unitId, {
-        requestNonPersonalizedAdsOnly: false,
-      });
-      const unsubscribe = rewardedInterstitial.addAdEventListener(RewardedAdEventType.LOADED, () => {
-        rewardedInterstitial.show();
-      });
-      // Remove listener ao fechar
-      const unsubClosed = rewardedInterstitial.addAdEventListener(RewardedAdEventType.EARNED_REWARD, () => {
-        unsubscribe();
-        unsubClosed();
-      });
-      rewardedInterstitial.load();
-    }
-  }
-
-  const statusText = result
-    ? `Vitória de ${result.winner}!`
-    : isDraw
-    ? 'Empate!'
-    : `Vez de ${current}`;
 
   const theme = isDark
     ? {
@@ -162,33 +70,18 @@ export default function App() {
 
   // Usa o AppNavigator para navegação stack
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }}>
-      <StatusBar style={isDark ? 'light' : 'dark'} />
-      <AppNavigator
-        theme={theme}
-        themeMode={themeMode}
-        setThemeMode={setThemeMode}
-        board={board}
-        setBoard={setBoard}
-        current={current}
-        setCurrent={setCurrent}
-        positions={positions}
-        setPositions={setPositions}
-        mode={mode}
-        setMode={setMode}
-        difficulty={difficulty}
-        setDifficulty={setDifficulty}
-        ai={ai}
-        lang={lang}
-        setLang={setLang}
-        result={result}
-        isDraw={isDraw}
-        handlePress={handlePress}
-        reset={reset}
-        statusText={statusText}
-        showInterstitialIfNeeded={showInterstitialIfNeeded}
-      />
-    </SafeAreaView>
+    <GameProvider>
+      <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }}>
+        <StatusBar style={isDark ? 'light' : 'dark'} />
+        <AppNavigator
+          theme={theme}
+          themeMode={themeMode}
+          setThemeMode={setThemeMode}
+          lang={lang}
+          setLang={setLang}
+        />
+      </SafeAreaView>
+    </GameProvider>
   );
 }
 
